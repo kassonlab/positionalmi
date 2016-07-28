@@ -11,7 +11,7 @@ import os
 import uuid
 import cPickle as pickle
 
-def displacement_process_launcher(clusteropts):
+def displacement_process_launcher(clusteropts, file_order):
   """
   Launches the displacement threads
   :param clusteropts: parameters for displacement for each thread
@@ -23,13 +23,16 @@ def displacement_process_launcher(clusteropts):
   alignongroup: If True, will look for an index file that consists of:
     1. Atoms in the system
     2. Atoms to align on
-  :return: 1. Produces a series of numpy files consisting of a displacement matrix for each trajectory along with
-  Fileorder.p which is a list of the order of trajectories in correspondence with the produced displacement
+  :return: 1. Produces a series of numpy files consisting of a displacement matrix with a tagged number beginning at 1
+  for each trajectory along with Fileorder.p which is a list of the order of trajectories
+  in correspondence with the produced displacement
   2. Will also produce a displacement matrix of all matrices combined
   """
   infiles = glob.glob(clusteropts['sourcedir'])
   infiles.sort()
-  pickle.dump( infiles, open( os.path.join(clusteropts['outputdir'],"Fileorder.p"), "wb"))
+  with open(file_order, 'w') as out_file:
+    for traj_name in infiles:
+      out_file.write("%s\n" % traj_name)
   displacements = [0] * len(infiles)
   i = 0
   for fname in infiles:
@@ -130,6 +133,7 @@ if __name__ == '__main__':
   gflags.DEFINE_boolean('alignongroup', False, 
                         'Align on group. If Selected then index should consist of two groups: index of all atoms and'
                         'index to align on')
+  gflags.DEFINE_string('fileOrder', 'fileOrder','Text file to save order that trajectories were processed')
   argv = FLAGS(sys.argv)
   clusteropts = dict()
   clusteropts['outputdir'] = FLAGS.outputdir
@@ -137,4 +141,4 @@ if __name__ == '__main__':
   clusteropts['sourcepdb'] = FLAGS.sourcepdb
   clusteropts['index'] = FLAGS.index
   clusteropts['alignongroup'] = FLAGS.alignongroup
-  displacement_process_launcher(clusteropts)
+  displacement_process_launcher(clusteropts, FLAGS.fileOrder)
